@@ -2,8 +2,6 @@
 #include <pthread.h>
 #include <unistd.h>
 
-// TODO: how to pass arguments
-
 void normalfunc(int* value) {
 	for(int i=0; i<3; ++i){
 		sleep(2);
@@ -24,10 +22,8 @@ void* threadfunc(void* arg) {
 int main(void) {
 	int value = 0;
 	pthread_t new_thread;
-
 	pthread_create(&new_thread, NULL, threadfunc, &value);
 	normalfunc(&value);
-
 	pthread_join(new_thread, NULL);
 	return 0;
 }
