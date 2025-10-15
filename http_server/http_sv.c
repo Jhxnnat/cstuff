@@ -5,13 +5,26 @@
 #include <sys/types.h>
 #include <netinet/in.h>
 #include <unistd.h>
+#include <stdarg.h>
 
 #define BUFFER_SIZE 16000
+#define FILE_SIZE 256
 
 int PORT = 6969;
 int log_value = 0;
 
 // TODO: scan for changes and read again to update
+// TODO: check for index.html when the request is: GET / HTTP/1.1
+
+void error(const char* fmt, ...) {
+	va_list ap;
+	va_start(ap, fmt);
+	vfprintf(stdout, fmt, ap);
+	fprintf(stdout, "\n");
+	fflush(stdout);
+	va_end(ap);
+	exit(1);
+}
 
 char *get_html_file(char* filepath) {
 	long len;
@@ -30,11 +43,21 @@ char *get_html_file(char* filepath) {
 	return buff;
 }
 
+void get_requested_file(char *file, char* buffer) {
+	// NOTE: file should be zeroed
+	int i = 5;
+	while (true) {
+		if (buffer[i] == ' ') break;
+		else if (buffer[i] == '\n') break; //just in case
+		file[i-5] = buffer[i];
+		i++;
+	}
+}
+
 int main() {
 	int server_socket;
 	if ((server_socket = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
-		puts("error creating socket");
-		return 1;
+		error("error creating socket");
 	}
 
 	struct sockaddr_in server_address;
@@ -46,32 +69,31 @@ int main() {
 	listen(server_socket, 5);
 	printf("== listening on port %d ==\n", PORT);
 
-	int client_socket;
+	int client_socket, n;
 	char buffer[BUFFER_SIZE];
+	char file[FILE_SIZE] = {0};
 	for (;;) {
-		bool not_found = false;
+		int s = 0;
+		bool not_found = true;
+		char* html_content;
 		client_socket = accept(server_socket, NULL, NULL);
 
-		char buff[256] = {0};
-		recv(client_socket, buff, 256, 0);
+		memset(buffer, 0, BUFFER_SIZE);
+		memset(file, 0, FILE_SIZE);
+		while ((n = read(client_socket, buffer, BUFFER_SIZE-1)) > 0) {
+			// Request example: GET /somefile.html ...
+			if (!s) { // lookup for the file on first line
+				s = 1;
+				get_requested_file(file, buffer);
+				if ((html_content = get_html_file(file))) not_found = false;
+			}
 
-		// GET /somefile.html ...
-		char* f = buff + 5;
-		*strchr(f, ' ') = 0;
-		char* html_content = get_html_file(f);
-		if (!html_content) {
-			not_found = true;
+			fprintf(stdout, "\n%s", buffer);
+			// VERY reliable way to detect end of the request :)
+			if (buffer[n-1] == '\n') break;
+			memset(buffer, 0, BUFFER_SIZE);
 		}
-
-		// NOTE: wtf is this?
-		ssize_t bytes_read = read(client_socket, buffer, BUFFER_SIZE - 1);
-		if (bytes_read >= 0) {
-			buffer[bytes_read] = '\0';
-			puts(buffer);
-		} else {
-			puts("Error reading buffer");
-			return 1;
-		}
+		if (n < 0) error("error reading buffer");
 
 		if (not_found) {
 			char* res = "HTTP/1.1 404 Not Found\r\n";
@@ -85,8 +107,7 @@ int main() {
 
 		char* response = malloc(strlen(_response) + strlen(html_content) + 1);
 		if (!response) {
-			puts("Malloc error");
-			return 1;
+			error("malloc error");
 		}
 
 		sprintf(response, "%s%s", _response, html_content);
