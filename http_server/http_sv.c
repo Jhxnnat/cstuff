@@ -6,10 +6,29 @@
 #include <netinet/in.h>
 #include <unistd.h>
 
-#define PORT 6969
 #define BUFFER_SIZE 16000
 
+int PORT = 6969;
 int log_value = 0;
+
+// TODO: scan for changes and read again to update
+
+char *get_html_file(char* filepath) {
+	long len;
+	char *buff = 0;
+	FILE *f = fopen(filepath, "r");
+	if (f) {
+		fseek(f, 0, SEEK_END);
+		len = ftell(f);
+		fseek(f, 0, SEEK_SET);
+		buff = malloc(len);
+		if (buff) {
+			fread(buff, 1, len, f);
+		}
+		fclose(f);
+	}
+	return buff;
+}
 
 int main() {
 	int server_socket;
@@ -30,7 +49,21 @@ int main() {
 	int client_socket;
 	char buffer[BUFFER_SIZE];
 	for (;;) {
+		bool not_found = false;
 		client_socket = accept(server_socket, NULL, NULL);
+
+		char buff[256] = {0};
+		recv(client_socket, buff, 256, 0);
+
+		// GET /somefile.html ...
+		char* f = buff + 5;
+		*strchr(f, ' ') = 0;
+		char* html_content = get_html_file(f);
+		if (!html_content) {
+			not_found = true;
+		}
+
+		// NOTE: wtf is this?
 		ssize_t bytes_read = read(client_socket, buffer, BUFFER_SIZE - 1);
 		if (bytes_read >= 0) {
 			buffer[bytes_read] = '\0';
@@ -39,18 +72,30 @@ int main() {
 			puts("Error reading buffer");
 			return 1;
 		}
-		char* response = "HTTP/1.1 200 OK\r\n"
-						 "Content-Type: text/html; charset=UTF-8\r\n\r\n"
-						 "<html>\r\n"
-						 "<head>\r\n"
-						 "<title>Tiny Http Server</title>\r\n"
-						 "<body>\r\n"
-						 "Tiny Http Server\r\n"
-						 "</body>\r\n"
-						 "</head>\r\n"
-						 "</html>\r\n";
+
+		if (not_found) {
+			char* res = "HTTP/1.1 404 Not Found\r\n";
+			write(client_socket, res, strlen(res));
+			close(client_socket);
+			continue;
+		}
+
+		char* _response = "HTTP/1.1 200 OK\r\n"
+						 "Content-Type: text/html; charset=UTF-8\r\n\r\n";
+
+		char* response = malloc(strlen(_response) + strlen(html_content) + 1);
+		if (!response) {
+			puts("Malloc error");
+			return 1;
+		}
+
+		sprintf(response, "%s%s", _response, html_content);
+		response[-1] = '\0';
+
 		write(client_socket, response, strlen(response));
 		close(client_socket);
+		free(response);
+		free(html_content);
 	}
 
 	return 0;
