@@ -9,12 +9,7 @@
 
 #define BUFFER_SIZE 16000
 #define FILE_SIZE 256
-
-int PORT = 6969;
-int log_value = 0;
-
-// TODO: scan for changes and read again to update
-// TODO: check for index.html when the request is: GET / HTTP/1.1
+#define PORT 6968
 
 void error(const char* fmt, ...) {
 	va_list ap;
@@ -46,6 +41,17 @@ char *get_html_file(char* filepath) {
 void get_requested_file(char *file, char* buffer) {
 	// NOTE: file should be zeroed
 	int i = 5;
+
+	// root edge case (return index.html)
+	if (buffer[5] == ' ') {
+		// if there is no index.html not_found will remain true
+		const char* index_html = "index.html";
+		for (size_t j = 0; j<strlen(index_html); ++j) {
+			file[j]=index_html[j];
+		}
+		return;
+	}
+
 	while (true) {
 		if (buffer[i] == ' ') break;
 		else if (buffer[i] == '\n') break; //just in case
