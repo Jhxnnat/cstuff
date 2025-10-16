@@ -2,13 +2,16 @@
 #define strlib_h
 
 typedef struct {
-	unsigned int len;
-	char* data[0];
-} string;
+	size_t size;
+	size_t capacity;
+	char* data;
+} string_t;
 
-string* str_init(const char* init_value);
-bool str_concat(string* dest, const char* value);
-unsigned int str_len(string* str);
-bool str_free(string* str);
+#define STR_GROW_FACTOR 2
+
+size_t str_len(const char* s);
+void str_init(string_t *str, const char* init_value);
+void str_free(string_t* str);
+void str_cat(string_t str);
 
 #endif // strlib_h
