@@ -1,52 +1,36 @@
+#include <stdlib.h>
 #include <stdio.h>
 #include <pthread.h>
-#include <unistd.h>
 
-#define VALUE 9999999
+// * compile with -lpthread
+//
+// int pthread_join(pthread_t thread, void **retval);
+// int pthread_create(pthread_t *restrict thread, 
+//  			const pthread_attr_t *restrict attr, 
+//  			typeof(void *(void *)) *start_routine,
+//  			void *restrict arg);
 
-void normalfunc(int* value) {
-	for(int i=0; i<VALUE; ++i){
-		(*value)++;
+
+// Thread functions are of type void*
+void* func(void* x) {
+	int xi = (int)x;
+	while (xi < 107) {
+		xi++;
+		printf(" thread func - x = %d\n", xi);
 	}
-	printf("Normal function - value: %d\n", *value);
+	return (void*)(xi);
 }
 
-void* threadfunc(void* arg) {
-	int *ipt = (int *)arg;
-	for(int i=0; i<VALUE; ++i){
-		(*ipt)++;
-	}
-	printf("Thread function - value: %d\n", *ipt);
-	return NULL;
-}
+int main(int argc, char** argv) {
+	pthread_t th;
+	pthread_create(&th, NULL, func, (void*)100);
 
-void thread_case() {
-	int value = 0;
-	pthread_t new_thread;
-	pthread_create(&new_thread, NULL, threadfunc, &value);
-	normalfunc(&value);
-	pthread_join(new_thread, NULL);
-}
+	printf("on thread\n");
+	void* ret_from_thread;
+	int ri;
+	pthread_join(th, &ret_from_thread);
+	ri = (int)ret_from_thread;
 
-void no_thread_case() {
-	int value = 0;
-	normalfunc(&value);
-	normalfunc(&value);
-}
-
-int main(void) {
-	printf(" == no_thread_case ==\n");
-	clock_t start = clock();
-	no_thread_case();
-	clock_t end = clock();
-	float seconds = (float)(end - start) / CLOCKS_PER_SEC;
-	printf(" == sec: %f", seconds);
-
-	// different result; slower
-	printf("\n\n == thread_case ==\n");
-	start = clock();
-	thread_case();
-	end = clock();
-	seconds = (float)(end - start) / CLOCKS_PER_SEC;
-	printf(" == sec: %f", seconds);
+	printf("on main after thread returned %d\n", ri);
+	return 0;
 }
