@@ -1,5 +1,5 @@
 CC = gcc
-CFLAGS = -Wall -Wextra
+CFLAGS = #-Wall -Wextra
 
 SRC = ./strlib.c
 OBJ = $(SRC:.c=.o)

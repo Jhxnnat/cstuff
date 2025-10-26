@@ -4,28 +4,36 @@
 
 int main(void) {
 	string_t str;
-
-	str_init(&str, "magic 123");
+	str_init(&str, "magic..thing");
 	str_cat(str);
 
-	str_init(&str, "magic");
+	bool e = str_insert(&str, "resistancee", 5);
+	if (e) {
+		printf("insert error\n");
+		exit(1);
+	}
 	str_cat(str);
 
-	// str_concat(" representation");
-	// str_cat(str);
+	e = str_concat(&str, "...");
+	if (e) {
+		printf("concat error\n");
+		exit(1);
+	}
+	str_cat(str);
 	
-	// str_insert(&str, 5, "//");
-	// str_cat(str);
-	
-	// str_delete(&str, 2, 4);
-	// str_cat(str);
+	e = str_delete(&str, 0, 5);
+	if (e) {
+		printf("delete error\n");
+		exit(1);
+	}
+	str_cat(str);
 
 	str_free(&str);
 	return 0;
 }
 
 void str_cat(string_t str) {
-	printf("%s - %d,%d\n", str.data, (int)str.size, (int)str.capacity);
+	printf("%s[%d,%d]\n", str.data, (int)str.size, (int)str.capacity);
 }
 
 size_t str_len(const char* s) {
@@ -36,6 +44,7 @@ size_t str_len(const char* s) {
 
 // void *memcpy(void dest[restrict .n], const void src[restrict .n],
 //              size_t n);
+// TODO: use pointers instead of x[y]
 void str_cpy(char* dest, const char* s, size_t len) {
 	for (size_t i = 0; i<len; ++i) {
 		dest[i] = s[i];
@@ -68,8 +77,8 @@ void str_init(string_t *str, const char* init_value) {
 		str->capacity = len * STR_GROW_FACTOR;
 		char *temp = realloc(str->data, str->capacity * sizeof(char));
 		if (temp == NULL) {
-            printf("error realloc\n");
-            exit(1);
+      printf("error realloc\n");
+      exit(1);
 		} else str->data = temp;
 	}
 
@@ -77,11 +86,54 @@ void str_init(string_t *str, const char* init_value) {
 	str_cpy(str->data, init_value, len);
 }
 
+// Deletes a part of a string of string_t
+bool str_delete(string_t* dest, size_t start, size_t end) {
+	if (start > end 
+			|| start > dest->size 
+			|| end > dest->size) return true;
+	
+	for (size_t i = start; i < dest->size; ++i) {
+		dest->data[i] = dest->data[i+(end-start)+1];
+	}
+	dest->size -= (end-start+1);
+	return false;
+}
 
-// TODO: 
-// bool str_concat(string_t* dest, const char* value);
-// bool str_insert();
-// bool str_delete();
+// Inserts a const string at any position of a string_t
+//   size_t pos can be -1 to insert at the end
+bool str_insert(string_t* dest, const char* s, int _pos) {
+	int pos = _pos;
+	if (_pos < 0 || _pos > dest->size) pos = dest->size - 1;
+
+	size_t len = str_len(s);
+	size_t new_len = dest->size + len;
+	if (dest->capacity < new_len) {
+		dest->capacity = new_len * STR_GROW_FACTOR;
+		char *temp = realloc(dest->data, dest->capacity * sizeof(char));
+		if (temp == NULL) {
+			return true;
+		} else {
+			dest->data = temp;
+		}
+	}
+
+	int diff = dest->size - pos;
+	for (size_t i = 0; i < diff-1; ++i) {
+		size_t n = dest->size + len - i - 1;
+		dest->data[n] = dest->data[dest->size-i-1];
+	}
+	for (size_t i = 0; i < len; ++i) {
+		dest->data[pos+i+1] = s[i];
+	}
+	dest->size += len;
+	return false;
+}
+
+// Add a constant string to a string_t at the end
+//   just a wrapper
+bool str_concat(string_t* dest, const char* s) {
+	return str_insert(dest, s, -1);
+}
 
 void str_free(string_t* str) {
 	str->size = 0;
