@@ -42,16 +42,15 @@ size_t str_len(const char* s) {
 	return i;
 }
 
-// void *memcpy(void dest[restrict .n], const void src[restrict .n],
-//              size_t n);
-// TODO: use pointers instead of x[y]
-void str_cpy(char* dest, const char* s, size_t len) {
-	for (size_t i = 0; i<len; ++i) {
-		dest[i] = s[i];
+char *str_copy(char* d, const char* s) {
+	char *_r = d;
+	while (*s) {
+		*d++ = *s++;
 	}
+	*d = 0;
+	return _r;
 }
 
-// void *memset(void s[.n], int c, size_t n);
 void str_set(char* dest, int c, size_t n) {
 	for (size_t i = 0; i<n; ++i) {
 		dest[i] = c;
@@ -83,7 +82,7 @@ void str_init(string_t *str, const char* init_value) {
 	}
 
 	str_set(str->data, 0, str->capacity);
-	str_cpy(str->data, init_value, len);
+	str_copy(str->data, init_value);
 }
 
 // Deletes a part of a string of string_t
