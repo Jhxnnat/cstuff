@@ -1,9 +1,9 @@
 CC = gcc
 CFLAGS = #-Wall -Wextra
 
-SRC = ./strlib.c
+SRC = $(wildcard *.c)
 OBJ = $(SRC:.c=.o)
-DEST = ./strlib
+DEST = ./main
 
 all: $(DEST)
 

@@ -1,36 +1,4 @@
-#include <stdio.h>
-#include <stdlib.h>
 #include "strlib.h"
-
-int main(void) {
-	string_t str;
-	str_init(&str, "magic..thing");
-	str_cat(str);
-
-	bool e = str_insert(&str, "resistancee", 5);
-	if (e) {
-		printf("insert error\n");
-		exit(1);
-	}
-	str_cat(str);
-
-	e = str_concat(&str, "...");
-	if (e) {
-		printf("concat error\n");
-		exit(1);
-	}
-	str_cat(str);
-	
-	e = str_delete(&str, 0, 5);
-	if (e) {
-		printf("delete error\n");
-		exit(1);
-	}
-	str_cat(str);
-
-	str_free(&str);
-	return 0;
-}
 
 void str_cat(string_t str) {
 	printf("%s[%d,%d]\n", str.data, (int)str.size, (int)str.capacity);
@@ -57,6 +25,26 @@ void str_set(char* dest, int c, size_t n) {
 	}
 }
 
+void str_alloc(string_t *str, size_t cap) {
+	if (str->capacity == 0) {
+		str->capacity = cap;
+		str->data = calloc(cap, sizeof(char));
+		//TODO: can make a errnull function for this (or use errno)
+		if (str->data == NULL) {
+			printf("error allocating string\n");
+			exit(1);
+		}
+	} else if (cap > str->capacity) {
+		str->capacity = cap;
+		char *temp = reallocarray(str->data, cap, sizeof(char));
+		if (temp == NULL) {
+			printf("error realloc\n");
+			exit(1);
+		} else str->data = temp;
+	}
+	str_set(str->data, 0, str->capacity);
+}
+
 void str_init(string_t *str, const char* init_value) {
 	size_t len = str_len(init_value);
 	str->size = len;
@@ -64,7 +52,7 @@ void str_init(string_t *str, const char* init_value) {
 	// first time
 	if (str->capacity == 0) {
 		str->capacity = len * STR_GROW_FACTOR;
-		str->data = malloc(str->capacity * sizeof(char));
+		str->data = calloc(str->capacity, sizeof(char));
 		if (str->data == NULL) {
 			printf("error allocating string\n");
 			exit(1);
@@ -72,12 +60,12 @@ void str_init(string_t *str, const char* init_value) {
 	}
 	// was initialized before
 	else if (str->capacity < len) {
-		printf("before\n");
 		str->capacity = len * STR_GROW_FACTOR;
-		char *temp = realloc(str->data, str->capacity * sizeof(char));
+		// char *temp = realloc(str->data, str->capacity * sizeof(char));
+		char *temp = reallocarray(str->data, str->capacity, sizeof(char));
 		if (temp == NULL) {
-      printf("error realloc\n");
-      exit(1);
+			printf("error realloc\n");
+			exit(1);
 		} else str->data = temp;
 	}
 
@@ -138,4 +126,18 @@ void str_free(string_t* str) {
 	str->size = 0;
 	str->capacity = 0;
 	free(str->data);
+}
+
+void str_fmt(string_t* s, const char *format, ...) {
+	va_list args;
+	va_start(args, format);
+	int bytecount = vsnprintf(s->data, s->capacity, format, args);
+	va_end(args);
+	if (bytecount >= s->capacity) {
+		s->size = s->capacity;
+		char *trunc = s->data + s->capacity - 4;
+		sprintf(trunc, "...");
+	} else {
+		s->size = bytecount;
+	}
 }
