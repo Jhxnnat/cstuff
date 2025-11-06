@@ -1,7 +1,5 @@
 # cstuff
 
-Miscellaneous (mostly C) programs (or exercices).
+Miscellaneous programs or exercices.
+This repo works as some sort of incubator, if I made something I like a lot maybe it gets moved on a new repo.
 
-* http_server: program that aims to work similar to `python -m http.server`
-* strlib: string library without `string.h`
-* threads: some notes on threads
