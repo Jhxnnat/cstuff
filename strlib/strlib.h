@@ -27,17 +27,21 @@ bool str_concat(string_t* dest, const char* s);
 bool str_insert(string_t* dest, const char* s, int pos);
 bool str_delete(string_t* dest, size_t start, size_t end);
 
-// TODO:
 void str_fmt(string_t* s, const char *format, ...);
+
+void str_toupper(string_t* str);
+void str_tolower(string_t* str);
+
+// === TODO ===
+//
+//
 string_t str_fmt_int(int value, size_t total, size_t dec);
 
-char *str_toupper(const char *text);                                                  // get upper case version of provided string
-char *str_tolower(const char *text);                                                  // get lower case version of provided string
-char *str_topascal(const char *text);                                                 // get pascal case notation version of provided string
-char *str_tosnake(const char *text);                                                  // get snake case notation version of provided string
-char *str_tocamel(const char *text);                                                  // get camel case notation version of provided string
-int str_tointeger(const char *text);                                                  // get integer value from text
-float str_tofloat(const char *text);                                                  // get float value from text
+void str_topascal(string_t* str);
+void str_tosnake(string_t* str);
+void str_tocamel(string_t* str);
+// int str_tointeger(const char *text);
+// float str_tofloat(const char *text);
 
 // return the character position of an instance 
 // of a char of a sub-string within a string
@@ -57,6 +61,5 @@ size_t str_count(string_t str, const char* substr);
 
 // parse a string and get only the numbers on it
 string_t str_digits(const char* s);
-
 
 #endif // strlib_h

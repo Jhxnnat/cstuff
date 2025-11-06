@@ -141,3 +141,46 @@ void str_fmt(string_t* s, const char *format, ...) {
 		s->size = bytecount;
 	}
 }
+
+char upper(char c) {
+	if (c >= 97 && c <= 122) {
+		return c - 32;
+	}
+	return c;
+}
+
+
+char lower(char c) {
+	if (c >= 65 && c <= 90) {
+		return c + 32;
+	}
+	return c;
+}
+
+bool is_letter() {
+	return false;
+}
+
+void str_toupper(string_t* str) {
+	for (size_t i = 0; i < str->size; ++i) {
+		str->data[i] = upper(str->data[i]);
+	}
+}
+
+void str_tolower(string_t* str) {
+	for (size_t i = 0; i < str->size; ++i) {
+		str->data[i] = lower(str->data[i]);
+	}
+}
+
+void str_topascal(string_t* str) {
+	str->data[0] = _upper(str->data[0]);
+	for (size_t i = 0; i < str->size; ++i) {
+		// check if current is space
+		// check if next is letter
+		if (str->data[i] == 32 && is_letter(str->data[i+1])) {
+
+		}
+	}
+}
+

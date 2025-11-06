@@ -1,10 +1,13 @@
 #include "strlib.h"
 
 int main(void) {
-	
 	string_t str;
-	str_alloc(&str, 64);
-	str_fmt(&str, "time: %d,%d", 35, 34);
+	// str_alloc(&str, 64);
+	// str_fmt(&str, "time: %d,%s", 35, "main");
+	str_init(&str, "Some Numbers like 123 are boRing");
+	str_toupper(&str);
+	str_cat(str);
+	str_tolower(&str);
 	str_cat(str);
 	str_free(&str);
 

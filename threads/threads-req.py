@@ -7,17 +7,15 @@ links = [
     "https://gnome.org",
     "https://debian.org",
     "https://archlinux.org",
-    # "https://www.wikipedia.org/",
 ]
 
 def threadfunc(link):
     if "python" in link:
         time.sleep(3)
-    print(f"Network request started for {link}")
+    print(f"> request for {link}")
     req = Request(link, headers={"Accept": "application/json"})
     with urlopen(req) as res:
-        print(f"    for link {link}    {res.status}")
-    print(f"Network request ended for {link}")
+        print(f"  response for {link}: {res.status}")
 
 threads = []
 for l in links:
@@ -26,6 +24,5 @@ for l in links:
 
 for t in threads:
     t.start()
-
 for t in threads:
     t.join()

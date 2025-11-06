@@ -8,8 +8,8 @@
 #include <stdarg.h>
 
 #define BUFFER_SIZE 16000
-#define FILE_SIZE 256
-#define PORT 6968
+#define FILENAME_MAX_SIZE 256
+#define PORT 3435
 
 void error(const char* fmt, ...) {
 	va_list ap;
@@ -21,7 +21,7 @@ void error(const char* fmt, ...) {
 	exit(1);
 }
 
-char *get_html_file(char* filepath) {
+char *read_file(char* filepath) {
 	long len;
 	char *buff = 0;
 	FILE *f = fopen(filepath, "r");
@@ -39,23 +39,21 @@ char *get_html_file(char* filepath) {
 }
 
 void get_requested_file(char *file, char* buffer) {
-	// NOTE: file should be zeroed
-	int i = 5;
-
-	// root edge case (return index.html)
+	// return index.html if GET /
+	// if no index.html then not_found remains true
 	if (buffer[5] == ' ') {
-		// if there is no index.html not_found will remain true
-		const char* index_html = "index.html";
-		for (size_t j = 0; j<strlen(index_html); ++j) {
-			file[j]=index_html[j];
+		const char index_html[] = "index.html";
+		for (size_t i = 0; i < strlen(index_html); ++i) {
+			file[i] = index_html[i];
 		}
 		return;
 	}
 
+	char* buff = buffer+5;
+	size_t i = 0;
 	while (true) {
-		if (buffer[i] == ' ') break;
-		else if (buffer[i] == '\n') break; //just in case
-		file[i-5] = buffer[i];
+		if (buff[i] == ' ' || buff[i] == '\n') break;
+		file[i] = buff[i];
 		i++;
 	}
 }
@@ -67,7 +65,7 @@ int main() {
 	}
 
 	struct sockaddr_in server_address;
-	server_address.sin_family = AF_INET;
+	server_address.sin_family = AF_INET; // only ipv4
 	server_address.sin_port = htons(PORT);
 	server_address.sin_addr.s_addr = htons(INADDR_ANY);
 
@@ -76,52 +74,50 @@ int main() {
 	printf("== listening on port %d ==\n", PORT);
 
 	int client_socket, n;
-	char buffer[BUFFER_SIZE];
-	char file[FILE_SIZE] = {0};
+	char buffer[BUFFER_SIZE] = {0};
+	char file[FILENAME_MAX_SIZE] = {0};
 	for (;;) {
-		int s = 0;
 		bool not_found = true;
-		char* html_content;
+		char* html_content = NULL;
 		client_socket = accept(server_socket, NULL, NULL);
 
 		memset(buffer, 0, BUFFER_SIZE);
-		memset(file, 0, FILE_SIZE);
-		while ((n = read(client_socket, buffer, BUFFER_SIZE-1)) > 0) {
-			// Request example: GET /somefile.html ...
-			if (!s) { // lookup for the file on first line
-				s = 1;
-				get_requested_file(file, buffer);
-				if ((html_content = get_html_file(file))) not_found = false;
-			}
+		memset(file, 0, FILENAME_MAX_SIZE);
 
-			fprintf(stdout, "\n%s", buffer);
-			// VERY reliable way to detect end of the request :)
-			if (buffer[n-1] == '\n') break;
-			memset(buffer, 0, BUFFER_SIZE);
+		n = read(client_socket, buffer, BUFFER_SIZE-1);
+		if (n < 0) error("client_socket read error");
+
+		fprintf(stdout, "\n%s\n", buffer);
+
+		// ignore favicon request
+		if (memcmp(file, "favicon.ico", 11) == 0) {
+			continue;
 		}
-		if (n < 0) error("error reading buffer");
 
+		get_requested_file(file, buffer);
+		fprintf(stdout, "FILE: %s\n", file);
+
+		html_content = read_file(file);
+		if (html_content != NULL) not_found = false;
 		if (not_found) {
+			fprintf(stdout, "NOT FOUND\n");
 			char* res = "HTTP/1.1 404 Not Found\r\n";
 			write(client_socket, res, strlen(res));
 			close(client_socket);
 			continue;
 		}
 
-		char* _response = "HTTP/1.1 200 OK\r\n"
-						 "Content-Type: text/html; charset=UTF-8\r\n\r\n";
+		// hardcoded response for now
+		char* res_header = "HTTP/1.1 200 OK\r\n"
+						   "Content-Type: text/html; charset=UTF-8\r\n\r\n";
+		size_t response_len = strlen(res_header) + strlen(html_content);
+		if (response_len >= BUFFER_SIZE) response_len = BUFFER_SIZE;
+		char response[response_len];
+		memset(response, 0, response_len);
+		snprintf(response, response_len, "%s%s", res_header, html_content);
 
-		char* response = malloc(strlen(_response) + strlen(html_content) + 1);
-		if (!response) {
-			error("malloc error");
-		}
-
-		sprintf(response, "%s%s", _response, html_content);
-		response[-1] = '\0';
-
-		write(client_socket, response, strlen(response));
+		write(client_socket, response, response_len);
 		close(client_socket);
-		free(response);
 		free(html_content);
 	}
 
